@@ -23,34 +23,92 @@ jobs:
       env:
         LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
       run: |
-        # Debug: Check if secret is set
+        echo "=== DEBUGGING PASSWORD REPLACEMENT ==="
+        
+        # Check if secret is set (length check)
         if [ -z "$LOAN_PASSWORD" ]; then
-          echo "ERROR: LOAN_PASSWORD secret is not set in repository settings!"
+          echo "❌ ERROR: LOAN_PASSWORD secret is not set!"
           echo "Please go to Settings > Secrets and variables > Actions and add LOAN_PASSWORD"
           exit 1
+        else
+          echo "✅ LOAN_PASSWORD secret is set (length: ${#LOAN_PASSWORD} characters)"
         fi
         
-        echo "LOAN_PASSWORD secret is set (length: ${#LOAN_PASSWORD} characters)"
-        
-        # Check if placeholder exists
-        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "Found password placeholder, replacing..."
+        # Show file before replacement (but mask the actual password)
+        echo "=== BEFORE REPLACEMENT ==="
+        if grep -n "GITHUB_SECRET_PASSWORD" index.html; then
+          echo "✅ Found password placeholder"
         else
-          echo "Password placeholder not found in index.html"
+          echo "❌ Password placeholder NOT found!"
+          echo "Current password constant in file:"
+          grep -n "CORRECT_PASSWORD" index.html || echo "No CORRECT_PASSWORD found"
           exit 1
         fi
         
-        # Simple replacement - escape special characters in password
-        # Use perl for more reliable replacement
-        perl -pi -e "s/GITHUB_SECRET_PASSWORD/\Q$ENV{LOAN_PASSWORD}\E/g" index.html
+        # Create a backup
+        cp index.html index.html.backup
         
-        # Verify replacement worked
+        # Try multiple replacement methods
+        echo "=== ATTEMPTING REPLACEMENT ==="
+        
+        # Method 1: Using sed with different delimiter
+        echo "Trying sed replacement..."
+        sed -i "s|GITHUB_SECRET_PASSWORD|$LOAN_PASSWORD|g" index.html
+        
+        # Check if replacement worked
+        echo "=== AFTER REPLACEMENT CHECK ==="
         if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "ERROR: Password replacement failed!"
+          echo "❌ Method 1 failed - placeholder still exists"
+          
+          # Restore backup and try method 2
+          cp index.html.backup index.html
+          echo "Trying perl replacement..."
+          perl -pi -e "s/GITHUB_SECRET_PASSWORD/\Q$ENV{LOAN_PASSWORD}\E/g" index.html
+          
+          if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+            echo "❌ Method 2 also failed!"
+            
+            # Restore backup and try method 3
+            cp index.html.backup index.html
+            echo "Trying Python replacement..."
+            python3 -c "
+import os
+with open('index.html', 'r') as f:
+    content = f.read()
+password = os.environ.get('LOAN_PASSWORD', '')
+content = content.replace('GITHUB_SECRET_PASSWORD', password)
+with open('index.html', 'w') as f:
+    f.write(content)
+print('Python replacement completed')
+"
+            
+            if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+              echo "❌ All methods failed!"
+              echo "Showing what's actually in the file around the password area:"
+              grep -A 2 -B 2 "CORRECT_PASSWORD" index.html
+              exit 1
+            else
+              echo "✅ Python replacement worked!"
+            fi
+          else
+            echo "✅ Perl replacement worked!"
+          fi
+        else
+          echo "✅ Sed replacement worked!"
+        fi
+        
+        # Final verification
+        echo "=== FINAL VERIFICATION ==="
+        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+          echo "❌ FINAL CHECK FAILED - placeholder still exists!"
           exit 1
         else
-          echo "Password replacement successful!"
+          echo "✅ Password replacement successful!"
+          echo "New password constant set (length: ${#LOAN_PASSWORD} characters)"
         fi
+        
+        # Clean up backup
+        rm -f index.html.backup
         
     - name: Setup Pages
       uses: actions/configure-pages@v5
