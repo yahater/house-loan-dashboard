@@ -5,13 +5,16 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -37,9 +40,9 @@ jobs:
           exit 1
         fi
         
-        # Replace password using printf to handle special characters safely
-        printf '%s\n' "s/GITHUB_SECRET_PASSWORD/$LOAN_PASSWORD/g" | sed -f - index.html > index.html.tmp
-        mv index.html.tmp index.html
+        # Simple replacement - escape special characters in password
+        # Use perl for more reliable replacement
+        perl -pi -e "s/GITHUB_SECRET_PASSWORD/\Q$ENV{LOAN_PASSWORD}\E/g" index.html
         
         # Verify replacement worked
         if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
