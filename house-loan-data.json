@@ -7,12 +7,12 @@
   },
   "additionalPayments": [
     {
-      "month": 6,
+      "month": 7,
       "amount": 9000,
       "description": "November 2024 - Extra payment"
     },
     {
-      "month": 9,
+      "month": 10,
       "amount": 12500,
       "description": "February 2025 - Bonus payment"
     }
