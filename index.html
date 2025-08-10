@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏠 House Loan Dashboard</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,9 +14,7 @@
     <div id="root"></div>
     
     <script type="text/babel">
-        // React Component Code
         const { useState, useEffect } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
 
         function HouseLoanDashboard() {
           const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -320,96 +318,337 @@
 
           // Show authentication screen if not authenticated
           if (!isAuthenticated) {
-            return React.createElement('div', { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100" },
-              React.createElement('div', { className: "max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl" },
-                React.createElement('div', { className: "text-center" },
-                  React.createElement('h1', { className: "text-3xl font-bold text-gray-900 mb-2" }, "🏠 House Loan Dashboard"),
-                  React.createElement('p', { className: "text-gray-600 mb-6" }, "Enter password to access your loan data")
-                ),
-                React.createElement('div', { className: "space-y-4" },
-                  React.createElement('div', null,
-                    React.createElement('input', {
-                      type: "password",
-                      value: password,
-                      onChange: (e) => setPassword(e.target.value),
-                      onKeyPress: (e) => e.key === 'Enter' && handleAuthentication(),
-                      placeholder: "Enter password",
-                      className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-lg",
-                      autoFocus: true
-                    })
-                  ),
-                  authError && React.createElement('div', { className: "text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg" }, authError),
-                  React.createElement('button', {
-                    onClick: handleAuthentication,
-                    className: "w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg"
-                  }, "Access Dashboard")
-                ),
-                React.createElement('div', { className: "text-center text-xs text-gray-500 mt-6" },
-                  React.createElement('p', null, "🔒 Your data is protected with password authentication"),
-                  React.createElement('p', { className: "mt-2" }, "💡 ", React.createElement('strong', null, "Tip:"), " Upload your 'house-loan-data.json' file to load your data")
-                )
-              )
+            return (
+              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-2xl shadow-xl">
+                  <div className="text-center">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">🏠 House Loan Dashboard</h1>
+                    <p className="text-gray-600 mb-6">Enter password to access your loan data</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAuthentication()}
+                        placeholder="Enter password"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-lg"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    {authError && (
+                      <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
+                        {authError}
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={handleAuthentication}
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg"
+                    >
+                      Access Dashboard
+                    </button>
+                  </div>
+                  
+                  <div className="text-center text-xs text-gray-500 mt-6">
+                    <p>🔒 Your data is protected with password authentication</p>
+                    <p className="mt-2">💡 <strong>Tip:</strong> Upload your 'house-loan-data.json' file to load your data</p>
+                  </div>
+                </div>
+              </div>
             );
           }
 
           // Show loading screen
           if (loading) {
-            return React.createElement('div', { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100" },
-              React.createElement('div', { className: "text-center" },
-                React.createElement('div', { className: "animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" }),
-                React.createElement('p', { className: "text-gray-600" }, "Loading your loan data...")
-              )
+            return (
+              <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading your loan data...</p>
+                </div>
+              </div>
             );
           }
 
           const chartData = createChartData();
 
-          return React.createElement('div', { className: "max-w-6xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10" },
-            // Header with logout
-            React.createElement('div', { className: "flex justify-between items-start mb-8" },
-              React.createElement('div', { className: "text-center flex-1" },
-                React.createElement('h1', { className: "text-3xl font-bold text-blue-800 mb-2" }, "🏠 House Loan Dashboard"),
-                loanData && React.createElement('div', { className: "text-sm text-gray-600 space-y-1" },
-                  React.createElement('p', null, React.createElement('strong', null, "Loan Start:"), " ", new Date(loanData.loanDetails.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })),
-                  React.createElement('p', null, React.createElement('strong', null, "Original Amount:"), " €", loanData.loanDetails.amount.toLocaleString(), " | ", React.createElement('strong', null, "Interest Rate:"), " ", loanData.loanDetails.interestRate, "% | ", React.createElement('strong', null, "Term:"), " ", loanData.loanDetails.termYears, " years"),
-                  React.createElement('p', null, React.createElement('strong', null, "Current Date:"), " ", new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), " | ", React.createElement('strong', null, "Loan Month:"), " ", currentMonth)
-                ),
-                dataError && React.createElement('div', { className: "text-orange-600 text-sm bg-orange-50 p-2 rounded-lg mt-2" }, dataError)
-              ),
-              React.createElement('button', {
-                onClick: () => setIsAuthenticated(false),
-                className: "bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm"
-              }, "🔐 Logout")
-            ),
-            
-            !loanData ? React.createElement('div', { className: "text-center py-12" },
-              React.createElement('p', { className: "text-gray-600 mb-4" }, "No loan data available. Using default values.")
-            ) : React.createElement(React.Fragment, null,
-              // Management Buttons
-              React.createElement('div', { className: "flex flex-wrap gap-3 justify-center mb-6" },
-                React.createElement('button', {
-                  onClick: () => setShowPaymentManager(!showPaymentManager),
-                  className: "bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                }, showPaymentManager ? 'Hide' : 'Manage', " Additional Payments"),
-                React.createElement('button', {
-                  onClick: exportUpdatedData,
-                  className: "bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
-                }, "📄 Export Updated Data")
-              ),
+          return (
+            <div className="max-w-6xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10">
+              {/* Header with logout */}
+              <div className="flex justify-between items-start mb-8">
+                <div className="text-center flex-1">
+                  <h1 className="text-3xl font-bold text-blue-800 mb-2">🏠 House Loan Dashboard</h1>
+                  {loanData && (
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p><strong>Loan Start:</strong> {new Date(loanData.loanDetails.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                      <p><strong>Original Amount:</strong> €{loanData.loanDetails.amount.toLocaleString()} | <strong>Interest Rate:</strong> {loanData.loanDetails.interestRate}% | <strong>Term:</strong> {loanData.loanDetails.termYears} years</p>
+                      <p><strong>Current Date:</strong> {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} | <strong>Loan Month:</strong> {currentMonth}</p>
+                    </div>
+                  )}
+                  
+                  {dataError && (
+                    <div className="text-orange-600 text-sm bg-orange-50 p-2 rounded-lg mt-2">
+                      {dataError}
+                    </div>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => setIsAuthenticated(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  🔐 Logout
+                </button>
+              </div>
 
-              // Rest of the component would continue here with similar React.createElement calls...
-              // For brevity, I'm showing the authentication part. The full component would need
-              // all JSX converted to React.createElement calls.
-              
-              React.createElement('div', { className: "text-center py-8" },
-                React.createElement('p', { className: "text-gray-600" }, "Dashboard loaded successfully!")
-              )
-            )
+              {!loanData ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600 mb-4">No loan data available. Using default values.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Management Buttons */}
+                  <div className="flex flex-wrap gap-3 justify-center mb-6">
+                    <button
+                      onClick={() => setShowPaymentManager(!showPaymentManager)}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      {showPaymentManager ? 'Hide' : 'Manage'} Additional Payments
+                    </button>
+                    <button
+                      onClick={exportUpdatedData}
+                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                    >
+                      📄 Export Updated Data
+                    </button>
+                  </div>
+
+                  {/* Additional Payments Manager */}
+                  {showPaymentManager && (
+                    <div className="mb-8 bg-green-50 p-6 rounded-xl border border-green-200">
+                      <h2 className="text-xl font-semibold mb-4 text-green-800">Additional Payments Manager</h2>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                        <input
+                          type="number"
+                          placeholder="Month #"
+                          value={newPayment.month}
+                          onChange={(e) => setNewPayment({...newPayment, month: e.target.value})}
+                          className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Amount (€)"
+                          value={newPayment.amount}
+                          onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})}
+                          className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Description (optional)"
+                          value={newPayment.description}
+                          onChange={(e) => setNewPayment({...newPayment, description: e.target.value})}
+                          className="border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        />
+                        <button
+                          onClick={addAdditionalPayment}
+                          className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        >
+                          Add Payment
+                        </button>
+                      </div>
+
+                      {additionalPayments.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold text-green-700 mb-2">Current Additional Payments:</h3>
+                          <div className="space-y-2">
+                            {additionalPayments.map((payment, index) => (
+                              <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border border-green-200">
+                                <div className="flex items-center space-x-4">
+                                  <span className="font-medium">Month {payment.month}</span>
+                                  <span className="text-green-600 font-semibold">€{payment.amount.toLocaleString()}</span>
+                                  <span className="text-sm text-gray-600">{payment.description}</span>
+                                </div>
+                                <button
+                                  onClick={() => removeAdditionalPayment(index)}
+                                  className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Current Loan Status */}
+                  {loanStatus && (
+                    <div className="mb-8 bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-200">
+                      <h2 className="text-xl font-semibold mb-4 text-purple-800">
+                        Current Status - {formatLoanDate(currentMonth)} 
+                        {loanStatus.loanPaidOff && <span className="ml-2 text-green-600">(LOAN PAID OFF! 🎉)</span>}
+                      </h2>
+                      
+                      {!loanStatus.loanPaidOff && (
+                        <div className="mb-6">
+                          <div className="flex justify-between text-sm text-gray-600 mb-2">
+                            <span>Loan Progress</span>
+                            <span>{loanStatus.progressPercentage.toFixed(1)}% Complete</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                            <div 
+                              className="bg-gradient-to-r from-green-400 to-blue-500 h-4 rounded-full transition-all duration-500 ease-out"
+                              style={{ width: `${loanStatus.progressPercentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <h3 className="font-semibold text-green-800 text-sm">Total Paid</h3>
+                          <p className="text-lg font-bold text-green-600">€{loanStatus.totalPaid.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">{loanStatus.monthsPaid} months</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <h3 className="font-semibold text-blue-800 text-sm">Principal Paid</h3>
+                          <p className="text-lg font-bold text-blue-600">€{loanStatus.principalPaid.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">Of loan amount</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <h3 className="font-semibold text-orange-800 text-sm">Interest Paid</h3>
+                          <p className="text-lg font-bold text-orange-600">€{loanStatus.interestPaid.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">Total interest so far</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <h3 className="font-semibold text-red-800 text-sm">{loanStatus.loanPaidOff ? 'Final Balance' : 'Remaining Balance'}</h3>
+                          <p className="text-lg font-bold text-red-600">€{loanStatus.remainingBalance.toLocaleString()}</p>
+                          <p className="text-xs text-gray-500">{loanStatus.loanPaidOff ? 'Paid off early!' : `${loanStatus.monthsRemaining} months left`}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Comparison Stats */}
+                  {schedule.length > 0 && comparison.length > 0 && (
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-blue-800">With Additional Payments</h3>
+                        <p className="text-sm">Loan paid off in: <span className="font-bold">{schedule.length} months</span></p>
+                        <p className="text-sm">Total interest: <span className="font-bold">€{schedule[schedule.length - 1]?.totalInterest.toLocaleString()}</span></p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-gray-800">Without Additional Payments</h3>
+                        <p className="text-sm">Loan paid off in: <span className="font-bold">{comparison.length} months</span></p>
+                        <p className="text-sm">Total interest: <span className="font-bold">€{comparison[comparison.length - 1]?.totalInterest.toLocaleString()}</span></p>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-green-800">Savings from Additional Payments</h3>
+                        <p className="text-sm">Time saved: <span className="font-bold">{comparison.length - schedule.length} months</span></p>
+                        <p className="text-sm">Interest saved: <span className="font-bold">€{(comparison[comparison.length - 1]?.totalInterest - schedule[schedule.length - 1]?.totalInterest).toLocaleString()}</span></p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chart */}
+                  {schedule.length > 0 && window.Recharts && (
+                    <div className="mt-8">
+                      <h2 className="text-xl font-semibold mb-4">Payment Progress Chart</h2>
+                      <Recharts.ResponsiveContainer width="100%" height={400}>
+                        <Recharts.LineChart data={chartData}>
+                          <Recharts.CartesianGrid strokeDasharray="3 3" />
+                          <Recharts.XAxis 
+                            dataKey="month" 
+                            label={{ value: 'Months', position: 'insideBottom', offset: -10 }}
+                          />
+                          <Recharts.YAxis label={{ value: 'Amount (€)', angle: -90, position: 'insideLeft' }} />
+                          <Recharts.Tooltip 
+                            formatter={(value) => `€${parseFloat(value).toLocaleString()}`}
+                            labelFormatter={(label) => `Month ${label}`}
+                          />
+                          <Recharts.Legend />
+                          <Recharts.Line type="monotone" dataKey="totalPrincipal" stroke="#22c55e" name="Total Principal Paid (With Extras)" strokeWidth={3} dot={false} />
+                          <Recharts.Line type="monotone" dataKey="totalInterest" stroke="#f59e0b" name="Total Interest Paid (With Extras)" strokeWidth={3} dot={false} />
+                          <Recharts.Line type="monotone" dataKey="remainingBalance" stroke="#3b82f6" name="Remaining Balance (With Extras)" strokeWidth={3} dot={false} />
+                          <Recharts.Line type="monotone" dataKey="totalPrincipalNoExtras" stroke="#86efac" name="Total Principal Paid (No Extras)" strokeDasharray="8 8" strokeWidth={2} dot={false} />
+                          <Recharts.Line type="monotone" dataKey="totalInterestNoExtras" stroke="#fbbf24" name="Total Interest Paid (No Extras)" strokeDasharray="8 8" strokeWidth={2} dot={false} />
+                          <Recharts.Line type="monotone" dataKey="remainingBalanceNoExtras" stroke="#93c5fd" name="Remaining Balance (No Extras)" strokeDasharray="8 8" strokeWidth={2} dot={false} />
+                        </Recharts.LineChart>
+                      </Recharts.ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Amortization Table */}
+                  {schedule.length > 0 && (
+                    <div className="mt-8 overflow-x-auto">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold">Amortization Schedule {showFullTable ? '(Complete)' : '(First 12 months)'}</h2>
+                        <button
+                          onClick={() => setShowFullTable(!showFullTable)}
+                          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                        >
+                          {showFullTable ? 'Show First 12 Months' : 'Show Complete Table'}
+                        </button>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Month</th>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Date</th>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Payment (€)</th>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Principal (€)</th>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Interest (€)</th>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Additional Payment (€)</th>
+                              <th className="border border-gray-200 px-4 py-2 font-semibold">Remaining Balance (€)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(showFullTable ? schedule : schedule.slice(0, 12)).map((row) => (
+                              <tr key={row.month} className={`hover:bg-gray-50 ${row.month === currentMonth ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}`}>
+                                <td className="border border-gray-200 px-4 py-2 text-center font-medium">
+                                  {row.month}
+                                  {row.month === currentMonth && <span className="ml-2 text-blue-600 text-xs">← Current</span>}
+                                </td>
+                                <td className="border border-gray-200 px-4 py-2 text-center">{formatLoanDate(row.month)}</td>
+                                <td className="border border-gray-200 px-4 py-2 text-right">{(row.principal + row.interest).toLocaleString()}</td>
+                                <td className="border border-gray-200 px-4 py-2 text-right">{(row.principal - row.oneTimePayment).toLocaleString()}</td>
+                                <td className="border border-gray-200 px-4 py-2 text-right">{row.interest.toLocaleString()}</td>
+                                <td className="border border-gray-200 px-4 py-2 text-right">
+                                  {row.oneTimePayment > 0 ? (
+                                    <span className="text-green-600 font-semibold">€{row.oneTimePayment.toLocaleString()}</span>
+                                  ) : (
+                                    '-'
+                                  )}
+                                </td>
+                                <td className="border border-gray-200 px-4 py-2 text-right">{row.remainingBalance.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {showFullTable && schedule.length > 12 && (
+                        <div className="mt-2 text-sm text-gray-600 text-center">
+                          Showing all {schedule.length} months
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           );
         }
         
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(HouseLoanDashboard));
+        root.render(<HouseLoanDashboard />);
     </script>
 </body>
 </html>
