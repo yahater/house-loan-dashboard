@@ -1,0 +1,22 @@
+name: Update Loan Data
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Monthly on 1st
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Update timestamp
+      run: |
+        jq '.lastUpdated = now | strftime("%Y-%m-%dT%H:%M:%S.000Z")' house-loan-data.json > tmp.json
+        mv tmp.json house-loan-data.json
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add house-loan-data.json
+        git commit -m "Auto-update loan data timestamp" || exit 0
+        git push

@@ -1,0 +1,25 @@
+{
+  "loanDetails": {
+    "startDate": "2024-05-01T00:00:00.000Z",
+    "amount": 220000,
+    "interestRate": 3.9,
+    "termYears": 30
+  },
+  "additionalPayments": [
+    {
+      "month": 6,
+      "amount": 9000,
+      "description": "November 2024 - Extra payment"
+    },
+    {
+      "month": 9,
+      "amount": 12500,
+      "description": "February 2025 - Bonus payment"
+    }
+  ],
+  "metadata": {
+    "lastUpdated": "2025-01-10T12:00:00.000Z",
+    "version": "1.0",
+    "notes": "Initial loan data setup"
+  }
+}
