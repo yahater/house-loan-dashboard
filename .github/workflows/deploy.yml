@@ -6,6 +6,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
@@ -15,11 +17,48 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Replace password placeholder
+      env:
+        LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
       run: |
-        sed -i "s/GITHUB_SECRET_PASSWORD/${{ secrets.LOAN_PASSWORD }}/g" index.html
+        # Check if LOAN_PASSWORD is set
+        if [ -z "$LOAN_PASSWORD" ]; then
+          echo "ERROR: LOAN_PASSWORD secret is not set!"
+          exit 1
+        fi
         
-    - name: Deploy to Pages
-      uses: peaceiris/actions-gh-pages@v3
+        # Use a more robust replacement method
+        # This handles special characters better
+        python3 << EOF
+import os
+import re
+
+# Read the file
+with open('index.html', 'r') as f:
+    content = f.read()
+
+# Replace the placeholder with the actual password
+password = os.environ.get('LOAN_PASSWORD', '')
+if not password:
+    raise ValueError("LOAN_PASSWORD environment variable is not set")
+
+# Simple string replacement (safer than sed for special characters)
+updated_content = content.replace('GITHUB_SECRET_PASSWORD', password)
+
+# Write back to file
+with open('index.html', 'w') as f:
+    f.write(updated_content)
+
+print(f"Password placeholder replaced successfully")
+EOF
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v2
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./
+        path: ./
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v3
