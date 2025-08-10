@@ -1,15 +1,23 @@
 name: Deploy Dashboard
+
 on:
   push:
     branches: [ main ]
+
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
+      
     - name: Replace password placeholder
       run: |
         sed -i 's/GITHUB_SECRET_PASSWORD/${{ secrets.LOAN_PASSWORD }}/g' index.html
+        
     - name: Deploy to Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
