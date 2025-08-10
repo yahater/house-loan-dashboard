@@ -16,40 +16,38 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       
-    - name: Replace password placeholder
+    - name: Debug and replace password
       env:
         LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
       run: |
-        # Check if LOAN_PASSWORD is set
+        # Debug: Check if secret is set
         if [ -z "$LOAN_PASSWORD" ]; then
-          echo "ERROR: LOAN_PASSWORD secret is not set!"
+          echo "ERROR: LOAN_PASSWORD secret is not set in repository settings!"
+          echo "Please go to Settings > Secrets and variables > Actions and add LOAN_PASSWORD"
           exit 1
         fi
         
-        # Use a more robust replacement method
-        # This handles special characters better
-        python3 << EOF
-import os
-import re
-
-# Read the file
-with open('index.html', 'r') as f:
-    content = f.read()
-
-# Replace the placeholder with the actual password
-password = os.environ.get('LOAN_PASSWORD', '')
-if not password:
-    raise ValueError("LOAN_PASSWORD environment variable is not set")
-
-# Simple string replacement (safer than sed for special characters)
-updated_content = content.replace('GITHUB_SECRET_PASSWORD', password)
-
-# Write back to file
-with open('index.html', 'w') as f:
-    f.write(updated_content)
-
-print(f"Password placeholder replaced successfully")
-EOF
+        echo "LOAN_PASSWORD secret is set (length: ${#LOAN_PASSWORD} characters)"
+        
+        # Check if placeholder exists
+        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+          echo "Found password placeholder, replacing..."
+        else
+          echo "Password placeholder not found in index.html"
+          exit 1
+        fi
+        
+        # Replace password using printf to handle special characters safely
+        printf '%s\n' "s/GITHUB_SECRET_PASSWORD/$LOAN_PASSWORD/g" | sed -f - index.html > index.html.tmp
+        mv index.html.tmp index.html
+        
+        # Verify replacement worked
+        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+          echo "ERROR: Password replacement failed!"
+          exit 1
+        else
+          echo "Password replacement successful!"
+        fi
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
