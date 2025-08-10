@@ -1,123 +1,23 @@
-name: Deploy Dashboard
+name: Test Secret
 
 on:
-  push:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+  workflow_dispatch:  # Manual trigger
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Debug and replace password
+    - name: Test if secret exists
+      run: |
+        if [ -z "${{ secrets.LOAN_PASSWORD }}" ]; then
+          echo "❌ LOAN_PASSWORD secret is NOT set!"
+          echo "Go to Settings > Secrets and variables > Actions"
+          echo "Add a new secret named LOAN_PASSWORD"
+        else
+          echo "✅ LOAN_PASSWORD secret IS set!"
+          echo "Length: ${#LOAN_PASSWORD} characters"
+          echo "First character: ${LOAN_PASSWORD:0:1}"
+          echo "Last character: ${LOAN_PASSWORD: -1}"
+        fi
       env:
         LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
-      run: |
-        echo "=== DEBUGGING PASSWORD REPLACEMENT ==="
-        
-        # Check if secret is set (length check)
-        if [ -z "$LOAN_PASSWORD" ]; then
-          echo "❌ ERROR: LOAN_PASSWORD secret is not set!"
-          echo "Please go to Settings > Secrets and variables > Actions and add LOAN_PASSWORD"
-          exit 1
-        else
-          echo "✅ LOAN_PASSWORD secret is set (length: ${#LOAN_PASSWORD} characters)"
-        fi
-        
-        # Show file before replacement (but mask the actual password)
-        echo "=== BEFORE REPLACEMENT ==="
-        if grep -n "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "✅ Found password placeholder"
-        else
-          echo "❌ Password placeholder NOT found!"
-          echo "Current password constant in file:"
-          grep -n "CORRECT_PASSWORD" index.html || echo "No CORRECT_PASSWORD found"
-          exit 1
-        fi
-        
-        # Create a backup
-        cp index.html index.html.backup
-        
-        # Try multiple replacement methods
-        echo "=== ATTEMPTING REPLACEMENT ==="
-        
-        # Method 1: Using sed with different delimiter
-        echo "Trying sed replacement..."
-        sed -i "s|GITHUB_SECRET_PASSWORD|$LOAN_PASSWORD|g" index.html
-        
-        # Check if replacement worked
-        echo "=== AFTER REPLACEMENT CHECK ==="
-        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "❌ Method 1 failed - placeholder still exists"
-          
-          # Restore backup and try method 2
-          cp index.html.backup index.html
-          echo "Trying perl replacement..."
-          perl -pi -e "s/GITHUB_SECRET_PASSWORD/\Q$ENV{LOAN_PASSWORD}\E/g" index.html
-          
-          if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-            echo "❌ Method 2 also failed!"
-            
-            # Restore backup and try method 3
-            cp index.html.backup index.html
-            echo "Trying Python replacement..."
-            python3 -c "
-import os
-with open('index.html', 'r') as f:
-    content = f.read()
-password = os.environ.get('LOAN_PASSWORD', '')
-content = content.replace('GITHUB_SECRET_PASSWORD', password)
-with open('index.html', 'w') as f:
-    f.write(content)
-print('Python replacement completed')
-"
-            
-            if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-              echo "❌ All methods failed!"
-              echo "Showing what's actually in the file around the password area:"
-              grep -A 2 -B 2 "CORRECT_PASSWORD" index.html
-              exit 1
-            else
-              echo "✅ Python replacement worked!"
-            fi
-          else
-            echo "✅ Perl replacement worked!"
-          fi
-        else
-          echo "✅ Sed replacement worked!"
-        fi
-        
-        # Final verification
-        echo "=== FINAL VERIFICATION ==="
-        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "❌ FINAL CHECK FAILED - placeholder still exists!"
-          exit 1
-        else
-          echo "✅ Password replacement successful!"
-          echo "New password constant set (length: ${#LOAN_PASSWORD} characters)"
-        fi
-        
-        # Clean up backup
-        rm -f index.html.backup
-        
-    - name: Setup Pages
-      uses: actions/configure-pages@v5
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: ./
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
