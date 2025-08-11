@@ -15,6 +15,35 @@
     <div id="root"></div>
     
     <script type="text/babel">
+        (async () => {
+           // Replace this with the public key you got from hashing your private key locally
+           const PUBLIC_KEY = "0ba46325137319ea"; 
+
+           // Read private key from URL
+           const urlParams = new URLSearchParams(window.location.search);
+           const providedKey = urlParams.get("key");
+
+           // Function to hash the provided key and compare
+           async function verifyPrivateKey(key) {
+             if (!key) return false;
+             const encoder = new TextEncoder();
+             const data = encoder.encode(key);
+             const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+             const hashArray = Array.from(new Uint8Array(hashBuffer));
+             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+             return hashHex.startsWith(PUBLIC_KEY);
+           }
+
+           const isValid = await verifyPrivateKey(providedKey);
+
+           if (!isValid) {
+             document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;'>Access Denied</h1>";
+             return; // stop loading the rest of the page
+           }
+
+           // ✅ At this point, key is valid — load your dashboard scripts
+           // You can now include your HouseLoanDashboard code here or in another script tag
+           })();
         const { useState, useEffect } = React;
 
         function HouseLoanDashboard() {
