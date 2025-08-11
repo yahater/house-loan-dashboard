@@ -1,23 +1,71 @@
-name: Test Secret
+name: Deploy Dashboard
 
 on:
-  workflow_dispatch:  # Manual trigger
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - name: Test if secret exists
-      run: |
-        if [ -z "${{ secrets.LOAN_PASSWORD }}" ]; then
-          echo "❌ LOAN_PASSWORD secret is NOT set!"
-          echo "Go to Settings > Secrets and variables > Actions"
-          echo "Add a new secret named LOAN_PASSWORD"
-        else
-          echo "✅ LOAN_PASSWORD secret IS set!"
-          echo "Length: ${#LOAN_PASSWORD} characters"
-          echo "First character: ${LOAN_PASSWORD:0:1}"
-          echo "Last character: ${LOAN_PASSWORD: -1}"
-        fi
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Debug and replace password
       env:
         LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
+      run: |
+        echo "=== DEBUGGING PASSWORD REPLACEMENT ==="
+        
+        # Check if secret is set
+        if [ -z "$LOAN_PASSWORD" ]; then
+          echo "ERROR: LOAN_PASSWORD secret is not set!"
+          exit 1
+        fi
+        
+        echo "LOAN_PASSWORD secret is set (length: ${#LOAN_PASSWORD})"
+        
+        # Check if placeholder exists
+        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+          echo "Found password placeholder"
+        else
+          echo "Password placeholder NOT found!"
+          exit 1
+        fi
+        
+        # Use environment variable file method (safest for special chars)
+        echo "$LOAN_PASSWORD" > /tmp/password.txt
+        
+        # Replace using the file
+        sed -i "s/GITHUB_SECRET_PASSWORD/$(cat /tmp/password.txt | sed 's/[[\.*^$()+?{|]/\\&/g')/g" index.html
+        
+        # Clean up temp file
+        rm /tmp/password.txt
+        
+        # Verify replacement
+        if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
+          echo "ERROR: Replacement failed!"
+          exit 1
+        else
+          echo "SUCCESS: Password replaced!"
+        fi
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
