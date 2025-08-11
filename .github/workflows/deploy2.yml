@@ -55,18 +55,6 @@ jobs:
         fi
         echo ""
         
-    - name: Create verification file
-      run: |
-        echo "=== CREATING VERIFICATION FILE ==="
-        # Create a simple verification file to confirm this version is deployed
-        echo "Deployment verification: $(date)" > deployment-check.txt
-        echo "Password replaced: $(date)" >> deployment-check.txt
-        grep "CORRECT_PASSWORD.*=" index.html >> deployment-check.txt
-        
-        echo "Verification file created:"
-        cat deployment-check.txt
-        echo ""
-        
     - name: List files being deployed
       run: |
         echo "=== FILES BEING DEPLOYED ==="
