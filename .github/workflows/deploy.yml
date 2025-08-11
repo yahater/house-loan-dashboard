@@ -1,71 +1,70 @@
-name: Deploy Dashboard
+name: Debug Password Issue
 
 on:
   push:
     branches: [ main ]
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 jobs:
-  deploy:
+  debug:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       
-    - name: Debug and replace password
+    - name: Debug the exact issue
       env:
         LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
       run: |
-        echo "=== DEBUGGING PASSWORD REPLACEMENT ==="
+        echo "=== DEBUGGING THE REPLACEMENT ISSUE ==="
         
-        # Check if secret is set
-        if [ -z "$LOAN_PASSWORD" ]; then
-          echo "ERROR: LOAN_PASSWORD secret is not set!"
-          exit 1
-        fi
+        echo "1. Password info:"
+        echo "   Length: ${#LOAN_PASSWORD}"
+        echo "   Value: '$LOAN_PASSWORD'"
         
-        echo "LOAN_PASSWORD secret is set (length: ${#LOAN_PASSWORD})"
-        
-        # Check if placeholder exists
+        echo "2. Looking for the exact string in file:"
         if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "Found password placeholder"
+          echo "   ✅ Found GITHUB_SECRET_PASSWORD"
+          echo "   Line containing it:"
+          grep -n "GITHUB_SECRET_PASSWORD" index.html
         else
-          echo "Password placeholder NOT found!"
-          exit 1
+          echo "   ❌ GITHUB_SECRET_PASSWORD not found"
         fi
         
-        # Use environment variable file method (safest for special chars)
-        echo "$LOAN_PASSWORD" > /tmp/password.txt
+        echo "3. Show the exact CORRECT_PASSWORD line:"
+        grep -n "CORRECT_PASSWORD" index.html
         
-        # Replace using the file
-        sed -i "s/GITHUB_SECRET_PASSWORD/$(cat /tmp/password.txt | sed 's/[[\.*^$()+?{|]/\\&/g')/g" index.html
+        echo "4. Testing sed replacement directly:"
+        echo "   Before: $(grep "CORRECT_PASSWORD" index.html)"
         
-        # Clean up temp file
-        rm /tmp/password.txt
+        # Try the replacement
+        sed -i "s/GITHUB_SECRET_PASSWORD/$LOAN_PASSWORD/g" index.html
         
-        # Verify replacement
+        echo "   After:  $(grep "CORRECT_PASSWORD" index.html)"
+        
+        echo "5. Check if placeholder still exists:"
         if grep -q "GITHUB_SECRET_PASSWORD" index.html; then
-          echo "ERROR: Replacement failed!"
-          exit 1
+          echo "   ❌ STILL EXISTS! Replacement failed!"
+          
+          echo "6. Let's see what went wrong:"
+          echo "   Checking for any encoding issues..."
+          hexdump -C index.html | grep -A 5 -B 5 "GITHUB_SECRET_PASSWORD" || echo "   Not found in hex dump"
+          
+          echo "   Full line around CORRECT_PASSWORD:"
+          grep -A 3 -B 3 "CORRECT_PASSWORD" index.html
+          
         else
-          echo "SUCCESS: Password replaced!"
+          echo "   ✅ Success! Placeholder removed"
+          echo "   New password is set to: $(grep "CORRECT_PASSWORD" index.html | cut -d'"' -f4)"
         fi
         
-    - name: Setup Pages
-      uses: actions/configure-pages@v5
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: ./
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+        echo "7. Final verification - what's the actual password value:"
+        node -e "
+        const fs = require('fs');
+        const content = fs.readFileSync('index.html', 'utf8');
+        const match = content.match(/const CORRECT_PASSWORD = \"([^\"]+)\"/);
+        if (match) {
+          console.log('Password found in file:', match[1]);
+        } else {
+          console.log('No password constant found');
+        }
+        "
