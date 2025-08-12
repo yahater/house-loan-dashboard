@@ -6,7 +6,6 @@
     <title>🏠 House Loan Dashboard</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://unpkg.com/prop-types@15/prop-types.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
@@ -35,7 +34,7 @@
           document.body.innerHTML = "<h1 style='text-align:center;margin-top:50px;'>Access Denied</h1>";
           return; // stop loading React app
         }
-        window.providedKey = providedKey;
+
         // ✅ Key is valid — now load your dashboard React code
         const script = document.createElement("script");
         script.type = "text/babel";
@@ -53,7 +52,6 @@
           const [loanData, setLoanData] = useState(null);
           const [loading, setLoading] = useState(false);
           const [dataError, setDataError] = useState("");
-          const [error, setError] = useState(null);
 
           // Set your password here - this will be replaced by GitHub Actions
           // const CORRECT_PASSWORD = "GITHUB_SECRET_PASSWORD";
@@ -79,8 +77,7 @@
           const [currentMonth, setCurrentMonth] = useState(0);
           const [showFullTable, setShowFullTable] = useState(false);
           const [showPaymentManager, setShowPaymentManager] = useState(false);
-          
-          const key = window.providedKey;
+
 
           
           
@@ -89,42 +86,18 @@
             setLoading(true);
             setDataError("");
             
-            
-            
             try {
               // Try to fetch from GitHub raw file URL
-              const response = await fetch('./house-loan-data.txt');
-              console.log("Fetch status:", response.status);
+              const response = await fetch('./house-loan-data.json');
               
-              if (!response.ok) {
-                throw new Error('Encrypted file not found');
+              if (response.ok) {
+                const data = await response.json();
+                setLoanData(data);
+                setAdditionalPayments(data.additionalPayments || []);
+                console.log("Loaded data from JSON file:", data);
+              } else {
+                throw new Error('JSON file not found');
               }
-              
-              // Fetch encrypted text (not JSON!)
-              console.log("Key used for decryption:", key);
-              const encryptedText = await response.text();
-              console.log("Encrypted text length:", encryptedText.length);
-              // Decrypt
-              const bytes = CryptoJS.AES.decrypt(encryptedText, key);
-              const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-              console.log("Decrypted text:", decryptedText);
-              
-              if (!decryptedText) {
-                throw new Error('Wrong key or corrupt data');
-              }
-              console.log("Key used for decryption:", key);
-              //console.log("Encrypted text length:", encryptedText.length);
-              //console.log("First 50 chars of encrypted text:", encryptedText.slice(0, 50));
-              //console.log("Decrypted text:", decryptedText);
-              // Parse JSON from decrypted text
-              const data = JSON.parse(decryptedText);
-             
-              // Update state
-              setLoanData(data);
-              setAdditionalPayments(data.additionalPayments || []);
-              
-              console.log("Loaded decrypted loan data:", data);
-              
             } catch (error) {
               console.log("No JSON file found or error loading, using default data");
               setDataError("Using default loan data. Upload 'house-loan-data.json' to use your data.");
@@ -290,23 +263,15 @@
               currentStatus: loanStatus
             };
 
-            // Convert to JSON string and encrypt using the same key
-            const jsonString = JSON.stringify(exportData, null, 2);
-            const encryptedData = CryptoJS.AES.encrypt(jsonString, key).toString();
-            //DATE
-            const now = new Date();
-            const dateStringCompact = now.toISOString().slice(0,10).replace(/-/g, '');
-            // Create encrypted text file download with date name
-            const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(encryptedData);
-            const exportFileDefaultName = `house-loan-data-${dateStringCompact}.txt`;
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = 'house-loan-data.json';
             
             const linkElement = document.createElement('a');
             linkElement.setAttribute('href', dataUri);
             linkElement.setAttribute('download', exportFileDefaultName);
             linkElement.click();
-            
-            // Show success message
-            alert(`✅ Encrypted data exported successfully!\n\nFile: house-loan-data-${dateStringCompact}.txt\nUse the same key to decrypt and load this data.`);
           };
 
           // Create chart data
@@ -432,7 +397,6 @@
           }
 
           const chartData = createChartData();
-          const LOAN_AMOUNT = loanData?.loanDetails?.amount || 0;
 
           return (
             <div className="max-w-6xl mx-auto p-6 bg-white shadow-xl rounded-2xl mt-10">
@@ -569,7 +533,7 @@
                       )}
 
                       {/* Status Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="bg-white p-4 rounded-lg shadow-sm">
                           <h3 className="font-semibold text-green-800 text-sm">Total Paid</h3>
                           <p className="text-lg font-bold text-green-600">€{loanStatus.totalPaid.toLocaleString()}</p>
@@ -591,84 +555,6 @@
                           <p className="text-xs text-gray-500">{loanStatus.loanPaidOff ? 'Paid off early!' : `${loanStatus.monthsRemaining} months left`}</p>
                         </div>
                       </div>
-
-                      {/* Visual Progress Breakdowns */}
-                      {!loanStatus.loanPaidOff && schedule.length > 0 && (
-                        <div className="space-y-6">
-                          {/* Principal vs Remaining */}
-                          <div>
-                            <div className="flex justify-between items-center mb-2">
-                              <h3 className="font-semibold text-gray-800">Loan Principal Progress</h3>
-                              <span className="text-sm text-gray-600 font-medium">
-                                {((loanStatus.principalPaid / LOAN_AMOUNT) * 100).toFixed(1)}% Paid Off
-                              </span>
-                            </div>
-                            <div className="flex rounded-lg overflow-hidden h-8 bg-gray-200">
-                              <div 
-                                className="bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
-                                style={{ width: `${(loanStatus.principalPaid / LOAN_AMOUNT) * 100}%` }}
-                                title={`Principal Paid: €${loanStatus.principalPaid.toLocaleString()}`}
-                              >
-                                {((loanStatus.principalPaid / LOAN_AMOUNT) * 100) > 15 ? 'Principal Paid' : ''}
-                              </div>
-                              <div 
-                                className="bg-gray-400 flex items-center justify-center text-white text-xs font-medium"
-                                style={{ width: `${(loanStatus.remainingBalance / LOAN_AMOUNT) * 100}%` }}
-                                title={`Remaining Balance: €${loanStatus.remainingBalance.toLocaleString()}`}
-                              >
-                                {((loanStatus.remainingBalance / LOAN_AMOUNT) * 100) > 15 ? 'Remaining Balance' : ''}
-                              </div>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-600 mt-2">
-                              <span>€0</span>
-                              <span>€{LOAN_AMOUNT.toLocaleString()} (Original Loan)</span>
-                            </div>
-                          </div>
-
-                          {/* Total Payment Progress */}
-                          <div>
-                            <div className="flex justify-between items-center mb-2">
-                              <h3 className="font-semibold text-gray-800">Total Payment Progress (Principal + Interest)</h3>
-                              <span className="text-sm text-gray-600 font-medium">
-                                {((loanStatus.totalPaid / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100).toFixed(1)}% Complete
-                              </span>
-                            </div>
-                            <div className="flex rounded-lg overflow-hidden h-8 bg-gray-200">
-                              <div 
-                                className="bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
-                                style={{ 
-                                  width: `${(loanStatus.principalPaid / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100}%` 
-                                }}
-                                title={`Principal Paid: €${loanStatus.principalPaid.toLocaleString()}`}
-                              >
-                                {((loanStatus.principalPaid / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100) > 12 ? 'Principal' : ''}
-                              </div>
-                              <div 
-                                className="bg-orange-500 flex items-center justify-center text-white text-xs font-medium"
-                                style={{ 
-                                  width: `${(loanStatus.interestPaid / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100}%` 
-                                }}
-                                title={`Interest Paid: €${loanStatus.interestPaid.toLocaleString()}`}
-                              >
-                                {((loanStatus.interestPaid / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100) > 12 ? 'Interest Paid' : ''}
-                              </div>
-                              <div 
-                                className="bg-red-400 flex items-center justify-center text-white text-xs font-medium"
-                                style={{ 
-                                  width: `${((loanStatus.remainingBalance + (schedule[schedule.length - 1].totalInterest - loanStatus.interestPaid)) / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100}%` 
-                                }}
-                                title={`Remaining Payments: €${(loanStatus.remainingBalance + (schedule[schedule.length - 1].totalInterest - loanStatus.interestPaid)).toLocaleString()}`}
-                              >
-                                {(((loanStatus.remainingBalance + (schedule[schedule.length - 1].totalInterest - loanStatus.interestPaid)) / (LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest)) * 100) > 15 ? 'Remaining Payments' : ''}
-                              </div>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-600 mt-2">
-                              <span>€0</span>
-                              <span>€{(LOAN_AMOUNT + schedule[schedule.length - 1].totalInterest).toLocaleString()} (Total Cost)</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
