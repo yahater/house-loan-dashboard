@@ -1,22 +1,197 @@
-name: Update Loan Data
+name: Update Encrypted Loan Data
+
 on:
   schedule:
-    - cron: '0 0 1 * *'  # Monthly on 1st
-  workflow_dispatch:  # Manual trigger
+    # Run monthly on 1st (matching your existing schedule)
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+    # Allow manual triggering
+    inputs:
+      force_update:
+        description: 'Force update even if no changes'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
-  update:
+  update-loan-data:
     runs-on: ubuntu-latest
+    
     steps:
-    - uses: actions/checkout@v3
-    - name: Update timestamp
-      run: |
-        jq '.lastUpdated = now | strftime("%Y-%m-%dT%H:%M:%S.000Z")' house-loan-data.json > tmp.json
-        mv tmp.json house-loan-data.json
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add house-loan-data.json
-        git commit -m "Auto-update loan data timestamp" || exit 0
-        git push
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          # Use a token with write permissions to push changes
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install crypto-js for encryption
+        run: npm install crypto-js
+        
+      - name: Check if encrypted file exists
+        id: check_file
+        run: |
+          if [ -f "house-loan-data.txt" ]; then
+            echo "file_exists=true" >> $GITHUB_OUTPUT
+            echo "Encrypted file found"
+          else
+            echo "file_exists=false" >> $GITHUB_OUTPUT
+            echo "Encrypted file not found"
+          fi
+      
+      - name: Decrypt existing data (if file exists)
+        if: steps.check_file.outputs.file_exists == 'true'
+        id: decrypt_data
+        run: |
+          cat << 'EOF' > decrypt.js
+          const CryptoJS = require('crypto-js');
+          const fs = require('fs');
+          
+          try {
+            const encryptedText = fs.readFileSync('house-loan-data.txt', 'utf8');
+            const key = process.env.LOAN_PASSWORD;
+            
+            const bytes = CryptoJS.AES.decrypt(encryptedText, key);
+            const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+            
+            if (!decryptedText) {
+              throw new Error('Wrong key or corrupt data');
+            }
+            
+            const data = JSON.parse(decryptedText);
+            console.log('Successfully decrypted existing data');
+            fs.writeFileSync('current-data.json', JSON.stringify(data, null, 2));
+          } catch (error) {
+            console.log('Error decrypting:', error.message);
+            // Create default data structure
+            const defaultData = {
+              "principal": 300000,
+              "interestRate": 3.5,
+              "termYears": 30,
+              "startDate": "2024-01-01",
+              "additionalPayments": []
+            };
+            fs.writeFileSync('current-data.json', JSON.stringify(defaultData, null, 2));
+          }
+          EOF
+          
+          node decrypt.js
+        env:
+          LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
+      
+      - name: Create default data (if no file exists)
+        if: steps.check_file.outputs.file_exists == 'false'
+        run: |
+          cat << 'EOF' > current-data.json
+          {
+            "principal": 300000,
+            "interestRate": 3.5,
+            "termYears": 30,
+            "startDate": "2024-01-01",
+            "additionalPayments": []
+          }
+          EOF
+      
+      - name: Update loan data
+        id: update_data
+        run: |
+          cat << 'EOF' > update-data.js
+          const fs = require('fs');
+          
+          // Read current data
+          const currentData = JSON.parse(fs.readFileSync('current-data.json', 'utf8'));
+          
+          // Example updates - customize this section based on your needs
+          const today = new Date().toISOString().split('T')[0];
+          let hasChanges = false;
+          
+          // Example: Add automatic monthly payment tracking
+          // You can customize this logic based on your specific requirements
+          
+          // Example: Update interest rate based on market conditions (placeholder)
+          // const newRate = await fetchCurrentRate(); // Implement your rate fetching logic
+          
+          // Example: Add scheduled additional payments
+          const scheduledPayments = [
+            // Add any scheduled additional payments here
+          ];
+          
+          scheduledPayments.forEach(payment => {
+            const existingPayment = currentData.additionalPayments.find(
+              p => p.date === payment.date
+            );
+            if (!existingPayment) {
+              currentData.additionalPayments.push(payment);
+              hasChanges = true;
+              console.log(`Added scheduled payment: ${payment.amount} on ${payment.date}`);
+            }
+          });
+          
+          // Sort additional payments by date
+          currentData.additionalPayments.sort((a, b) => new Date(a.date) - new Date(b.date));
+          
+          // Add a timestamp of last update (matching your existing workflow)
+          const now = new Date();
+          currentData.lastUpdated = now.toISOString();
+          hasChanges = true;
+          
+          // Write updated data
+          fs.writeFileSync('updated-data.json', JSON.stringify(currentData, null, 2));
+          
+          console.log('Data update completed');
+          console.log(`Has changes: ${hasChanges}`);
+          
+          // Set output for next step
+          fs.writeFileSync(process.env.GITHUB_OUTPUT, `has_changes=${hasChanges}\n`, { flag: 'a' });
+          EOF
+          
+          node update-data.js
+      
+      - name: Encrypt updated data
+        if: steps.update_data.outputs.has_changes == 'true' || github.event.inputs.force_update == 'true'
+        run: |
+          cat << 'EOF' > encrypt.js
+          const CryptoJS = require('crypto-js');
+          const fs = require('fs');
+          
+          const data = fs.readFileSync('updated-data.json', 'utf8');
+          const key = process.env.LOAN_PASSWORD;
+          
+          const encrypted = CryptoJS.AES.encrypt(data, key).toString();
+          fs.writeFileSync('house-loan-data.txt', encrypted);
+          
+          console.log('Data encrypted successfully');
+          console.log('Encrypted file size:', encrypted.length, 'characters');
+          EOF
+          
+          node encrypt.js
+        env:
+          LOAN_PASSWORD: ${{ secrets.LOAN_PASSWORD }}
+      
+      - name: Commit and push changes
+        if: steps.update_data.outputs.has_changes == 'true' || github.event.inputs.force_update == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add house-loan-data.txt
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update encrypted loan data - $(date '+%Y-%m-%d %H:%M:%S UTC')"
+            git push
+            echo "Changes committed and pushed successfully"
+          fi
+      
+      - name: Cleanup temporary files
+        if: always()
+        run: |
+          rm -f decrypt.js encrypt.js update-data.js
+          rm -f current-data.json updated-data.json
+          rm -f package.json package-lock.json
+          rm -rf node_modules
