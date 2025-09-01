@@ -105,55 +105,29 @@ jobs:
           // Read current data
           const currentData = JSON.parse(fs.readFileSync('current-data.json', 'utf8'));
           
-          // Calculate and add monthly payment for current month
-          const today = new Date();
-          const currentMonth = today.toISOString().split('T')[0].substring(0, 7); // YYYY-MM format
-          const paymentDate = `${currentMonth}-01`; // First of current month
+          // Example updates - customize this section based on your needs
+          const today = new Date().toISOString().split('T')[0];
           let hasChanges = false;
           
-          // Calculate monthly payment using standard loan formula
-          const principal = currentData.principal;
-          const annualRate = currentData.interestRate / 100;
-          const monthlyRate = annualRate / 12;
-          const totalPayments = currentData.termYears * 12;
+          // Example: Add automatic monthly payment tracking
+          // You can customize this logic based on your specific requirements
           
-          // Standard monthly payment calculation
-          const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
-                                (Math.pow(1 + monthlyRate, totalPayments) - 1);
+          // Example: Update interest rate based on market conditions (placeholder)
+          // const newRate = await fetchCurrentRate(); // Implement your rate fetching logic
           
-          // Check if payment for current month already exists
-          const existingPayment = currentData.additionalPayments.find(
-            p => p.date.startsWith(currentMonth)
-          );
-          
-          if (!existingPayment) {
-            // Add monthly payment
-            const newPayment = {
-              date: paymentDate,
-              amount: Math.round(monthlyPayment * 100) / 100, // Round to 2 decimal places
-              description: `Monthly payment for ${currentMonth}`
-            };
-            
-            currentData.additionalPayments.push(newPayment);
-            hasChanges = true;
-            console.log(`Added monthly payment: ${newPayment.amount} for ${currentMonth}`);
-          } else {
-            console.log(`Payment for ${currentMonth} already exists`);
-          }
-          
-          // You can also add any scheduled extra payments here
-          const scheduledExtraPayments = [
-            // Example: { date: "2024-12-15", amount: 500, description: "Year-end bonus payment" }
+          // Example: Add scheduled additional payments
+          const scheduledPayments = [
+            // Add any scheduled additional payments here
           ];
           
-          scheduledExtraPayments.forEach(payment => {
-            const existingExtraPayment = currentData.additionalPayments.find(
-              p => p.date === payment.date && p.description === payment.description
+          scheduledPayments.forEach(payment => {
+            const existingPayment = currentData.additionalPayments.find(
+              p => p.date === payment.date
             );
-            if (!existingExtraPayment) {
+            if (!existingPayment) {
               currentData.additionalPayments.push(payment);
               hasChanges = true;
-              console.log(`Added scheduled extra payment: ${payment.amount} on ${payment.date}`);
+              console.log(`Added scheduled payment: ${payment.amount} on ${payment.date}`);
             }
           });
           
@@ -178,6 +152,7 @@ jobs:
           node update-data.js
       
       - name: Encrypt updated data
+        if: steps.update_data.outputs.has_changes == 'true' || github.event.inputs.force_update == 'true'
         run: |
           cat << 'EOF' > encrypt.js
           const CryptoJS = require('crypto-js');
